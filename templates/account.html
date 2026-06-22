@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>My account</h1>
+    <p>Change your dashboard password.</p>
+  </div>
+</section>
+
+<section class="card account-card">
+  <h2>Change password</h2>
+  <form method="post" action="{{ url_for('account') }}" class="stack-form narrow-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Current password
+      <input name="current_password" type="password" autocomplete="current-password" required>
+    </label>
+    <label>New password
+      <input name="new_password" type="password" minlength="8" autocomplete="new-password" required>
+    </label>
+    <label>Confirm new password
+      <input name="confirm_password" type="password" minlength="8" autocomplete="new-password" required>
+    </label>
+    <button type="submit">Change password</button>
+  </form>
+</section>
+{% endblock %}

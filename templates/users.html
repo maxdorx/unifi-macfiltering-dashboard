@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Dashboard users</h1>
+    
+  </div>
+</section>
+
+<section class="card">
+  <h2>Add user</h2>
+  <form class="row-form user-add-form" method="post" action="{{ url_for('user_add') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Username
+      <input name="username" placeholder="jane.doe" required>
+    </label>
+    <label>Display name
+      <input name="display_name" placeholder="Jane Doe">
+    </label>
+    <label>Role
+      <select name="role">
+        <option value="support" selected>Support</option>
+        <option value="admin">Admin</option>
+      </select>
+    </label>
+    <label>Password
+      <input name="new_password" type="password" minlength="8" autocomplete="new-password" required>
+    </label>
+    <button type="submit">Create user</button>
+  </form>
+</section>
+
+<section class="card table-card users-card">
+  <h2>Existing users</h2>
+  <div class="table-scroll users-table-scroll">
+  <table class="users-table">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Display name</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Last login</th>
+        <th>New password</th>
+        <th>Account status</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td><strong>{{ row.username }}</strong></td>
+        <td>{{ row.display_name }}</td>
+        <td>
+          <form method="post" action="{{ url_for('user_role', username=row.username) }}" class="label-form users-role-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <select name="role" aria-label="Role">
+              <option value="support" {{ 'selected' if row.role == 'support' else '' }}>Support</option>
+              <option value="admin" {{ 'selected' if row.role == 'admin' else '' }}>Admin</option>
+            </select>
+            <button class="small" type="submit">Set</button>
+          </form>
+        </td>
+        <td><span class="pill {{ 'ok' if row.is_active else 'warn' }}">{{ 'Active' if row.is_active else 'Disabled' }}</span></td>
+        <td class="nowrap">{{ row.created_at|display_datetime }}</td>
+        <td class="nowrap">{{ row.last_login_at|display_datetime if row.last_login_at else '' }}</td>
+        <td>
+          <form method="post" action="{{ url_for('user_password', username=row.username) }}" class="label-form users-password-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input name="new_password" type="password" minlength="8" autocomplete="new-password" placeholder="New password" required>
+            <button class="small" type="submit">Update</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('user_toggle', username=row.username) }}" onsubmit="return confirm('Change status for {{ row.username }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="small {{ 'danger' if row.is_active else '' }}" type="submit">{{ 'Disable' if row.is_active else 'Enable' }}</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8">No users found. The app will bootstrap the first user from .env when configured.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

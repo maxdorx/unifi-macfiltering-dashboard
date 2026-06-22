@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Preview MAC addresses</h1>
+    <p class="subtle">WiFi network: {{ wlan.name }}</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('ssid_detail', ssid_id=wlan.id) }}">Cancel</a>
+</section>
+
+{% if enable_if_disabled %}
+<section class="card warning-card">
+  <h2>Turn on MAC allow list</h2>
+  <p>Applying this will turn on the MAC allow list for {{ wlan.name }}. Only the final listed MAC addresses will be allowed. Review the list before applying.</p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Valid MAC addresses</h2>
+  <table>
+    <thead><tr><th>MAC address</th><th>Name / Owner</th><th>Status</th><th>Source</th></tr></thead>
+    <tbody>
+    {% for entry in entries %}
+      <tr>
+        <td><code>{{ entry.mac }}</code></td>
+        <td>{{ entry.label }}</td>
+        <td>
+          {% if entry.duplicate_input %}<span class="pill warn">Duplicate in upload</span>
+          {% elif entry.exists %}<span class="pill">Already exists</span>
+          {% else %}<span class="pill ok">Will add</span>{% endif %}
+        </td>
+        <td class="subtle">{{ entry.raw }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">No valid MAC addresses found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% if invalids %}
+<section class="card warning-card">
+  <h2>Invalid entries</h2>
+  <table>
+    <thead><tr><th>Line</th><th>Input</th><th>Error</th></tr></thead>
+    <tbody>
+    {% for item in invalids %}
+      <tr><td>{{ item.line }}</td><td>{{ item.raw }}</td><td>{{ item.error }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="card actions-card">
+  <form method="post" action="{{ url_for('bulk_apply', ssid_id=wlan.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <textarea hidden name="preview_json">{{ preview_json }}</textarea>
+    {% if enable_if_disabled %}<input type="hidden" name="enable_if_disabled" value="1">{% endif %}
+    <button type="submit" {% if not allow_apply %}disabled{% endif %}>Apply changes</button>
+    <a class="button secondary" href="{{ url_for('ssid_detail', ssid_id=wlan.id) }}">Cancel</a>
+  </form>
+</section>
+{% endblock %}

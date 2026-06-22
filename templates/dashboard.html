@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>WiFi networks</h1>
+    <p class="subtle">Shows MAC allow-list status from UniFi.</p>
+  </div>
+</section>
+
+<section class="card filter-card">
+  <form class="filters" method="get">
+    <label>Search WiFi name
+      <input name="q" value="{{ q }}" placeholder="Search WiFi name">
+    </label>
+    <label>MAC allow list
+      <select name="status">
+        <option value="" {% if not status %}selected{% endif %}>All</option>
+        <option value="on" {% if status == 'on' %}selected{% endif %}>On</option>
+        <option value="off" {% if status == 'off' %}selected{% endif %}>Off</option>
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+    <a class="button secondary" href="{{ url_for('dashboard') }}">Reset</a>
+  </form>
+</section>
+
+<section class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>WiFi name</th>
+        <th>Enabled</th>
+        <th>Security</th>
+        <th>Band</th>
+        <th>MAC allow list</th>
+        <th>Policy</th>
+        <th>Allowed MAC addresses</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td><strong>{{ row.name }}</strong></td>
+        <td>{{ "Yes" if row.enabled else "No" }}</td>
+        <td>{{ row.security }}</td>
+        <td>{{ row.band }}</td>
+        <td><span class="pill {{ 'ok' if row.mac_filter_enabled else '' }}">{{ row.status }}</span></td>
+        <td>{{ row.policy_label }}</td>
+        <td>{{ row.mac_count }}</td>
+        <td><a class="button small" href="{{ url_for('ssid_detail', ssid_id=row.id) }}">Manage</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8">No WiFi networks matched.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

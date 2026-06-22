@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }}</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <a class="brand" href="{{ url_for('dashboard') }}">{{ app_name }}</a>
+  </div>
+  <nav>
+    {% if current_user %}
+    <a href="{{ url_for('dashboard') }}">WiFi networks</a>
+    {% if is_admin %}
+    <a href="{{ url_for('backups') }}">Backups</a>
+    <a href="{{ url_for('audit_log') }}">Audit</a>
+    <a href="{{ url_for('users') }}">Users</a>
+    {% endif %}
+    <a href="{{ url_for('account') }}">My account</a>
+    <form method="post" action="{{ url_for('logout') }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="link-button" type="submit">Log out: {{ current_user }}{% if current_user_role %} ({{ current_user_role|role_label }}){% endif %}</button>
+    </form>
+    {% endif %}
+    <button class="theme-toggle" type="button" id="themeToggle" aria-label="Toggle dark mode">Dark mode</button>
+  </nav>
+</header>
+
+<main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="messages">
+      {% for category, message in messages %}
+        <div class="message {{ category }}">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  Built by <a href="https://github.com/maxdorx/" target="_blank" rel="noopener noreferrer">maxdorx</a>
+</footer>
+
+<script>
+(function () {
+  const root = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    if (toggle) toggle.textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+  }
+  applyTheme(localStorage.getItem('theme') || root.getAttribute('data-theme') || 'light');
+  if (toggle) {
+    toggle.addEventListener('click', function () {
+      applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  }
+})();
+</script>
+</body>
+</html>

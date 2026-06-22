@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Audit log</h1>
+    <p class="subtle">Shows who changed MAC lists, names, users, and backups.</p>
+  </div>
+  <a class="button" href="{{ url_for('audit_csv', **filters) }}">Export CSV</a>
+</section>
+
+<section class="card filter-card">
+  <form class="filters" method="get">
+    <label>Search
+      <input name="q" value="{{ filters.q }}" placeholder="MAC address, owner, WiFi name, change details">
+    </label>
+    <label>User
+      <select name="user">
+        <option value="">All</option>
+        {% for username in users %}
+          <option value="{{ username }}" {% if filters.user == username %}selected{% endif %}>{{ username }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Action
+      <select name="action">
+        <option value="">All</option>
+        {% for action in actions %}
+          <option value="{{ action.value }}" {% if filters.action == action.value %}selected{% endif %}>{{ action.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Status
+      <select name="success">
+        <option value="" {% if not filters.success %}selected{% endif %}>All</option>
+        <option value="1" {% if filters.success == '1' %}selected{% endif %}>Success</option>
+        <option value="0" {% if filters.success == '0' %}selected{% endif %}>Failed</option>
+      </select>
+    </label>
+    <button type="submit">Filter</button>
+    <a class="button secondary" href="{{ url_for('audit_log') }}">Reset</a>
+  </form>
+</section>
+
+<section class="card table-card">
+  <div class="table-scroll">
+  <table class="audit-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>User</th>
+        <th>IP address</th>
+        <th>Action</th>
+        <th>WiFi name</th>
+        <th>MAC address / account</th>
+        <th>Name</th>
+        <th>Change details</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td class="nowrap">{{ row.created_at|display_datetime }}</td>
+        <td>{{ row.username }}</td>
+        <td>{{ row.source_ip }}</td>
+        <td><span class="pill">{{ row.action|action_label }}</span></td>
+        <td>{{ row.ssid_name }}</td>
+        <td><code>{{ row.mac }}</code></td>
+        <td>{{ row.label }}</td>
+        <td>{{ row.detail|detail_label }}</td>
+        <td>{{ "Success" if row.success else "Failed" }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9">No audit rows matched.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+</section>
+{% endblock %}

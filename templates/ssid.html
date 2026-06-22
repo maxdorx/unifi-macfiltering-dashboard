@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>{{ wlan.name }}</h1>
+    <p class="subtle">Internal ID: {{ wlan.id }}</p>
+  </div>
+  <div class="action-row">
+    {% if is_admin %}
+    <form method="post" action="{{ url_for('backup_now', ssid_id=wlan.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="secondary" type="submit">Create backup</button>
+    </form>
+    {% endif %}
+    <a class="button secondary" href="{{ url_for('dashboard') }}">Back</a>
+  </div>
+</section>
+
+<section class="tip-banner" id="hardwareMacTip">
+  <div>
+    <strong>Tip:</strong> Add the device hardware MAC address. Turn off randomized/private MAC on the user’s device before adding it.
+  </div>
+  <button type="button" class="tip-close" aria-label="Hide tip">×</button>
+</section>
+
+<section class="grid cards-4">
+  <div class="card stat"><span>WiFi enabled</span><strong>{{ "Yes" if wlan.enabled else "No" }}</strong></div>
+  <div class="card stat"><span>Security</span><strong>{{ wlan.security }}</strong></div>
+  <div class="card stat"><span>MAC allow list</span><strong>{{ wlan.status }}</strong></div>
+  <div class="card stat"><span>Allowed MAC addresses</span><strong>{{ wlan.mac_count }}</strong></div>
+</section>
+
+{% if not wlan.mac_filter_enabled %}
+<section class="card warning-card">
+  <h2>MAC allow list is off</h2>
+  <p>This WiFi network currently uses normal WiFi security only. An admin must turn on the MAC allow list before support users can add or remove MAC addresses.</p>
+</section>
+{% elif wlan.mac_filter_policy != 'allow' %}
+<section class="card warning-card">
+  <h2>Deny mode</h2>
+  <p>This WiFi network is using deny mode. Editing is blocked in this dashboard.</p>
+</section>
+{% endif %}
+
+{% if wlan.mac_filter_enabled and wlan.mac_filter_policy == 'allow' %}
+<section class="card">
+  <h2>Add one MAC</h2>
+  <form class="row-form" method="post" action="{{ url_for('add_mac', ssid_id=wlan.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>MAC address
+      <input name="mac" placeholder="aa:bb:cc:dd:ee:ff" required>
+    </label>
+    <label>Optional name / owner
+      <input name="label" placeholder="Jane Doe laptop">
+    </label>
+    <button type="submit">Add MAC</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Add many MAC addresses</h2>
+  <p class="subtle">Paste MAC addresses, upload a CSV/TXT file, or both. Supported CSV headers: mac,name or mac,owner or mac,description.</p>
+  <form method="post" action="{{ url_for('bulk_preview', ssid_id=wlan.id) }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if is_admin and not wlan.mac_filter_enabled and cfg.allow_enable_filtering %}
+      <label class="checkbox danger"><input type="checkbox" name="enable_if_disabled" value="1"> Turn on the MAC allow list when applying</label>
+    {% endif %}
+    <label>Paste MAC addresses
+      <textarea name="bulk_text" rows="7" placeholder="32:17:57:9c:f6:22, maxdorx laptop&#10;94-53-30-20-25-c1, Spare Dell&#10;a864f1f49089"></textarea>
+    </label>
+    <label>Upload CSV or TXT
+      <input type="file" name="bulk_file" accept=".csv,.txt,text/csv,text/plain">
+    </label>
+    <button type="submit">Preview MAC addresses</button>
+  </form>
+</section>
+
+<section class="card" id="allowed-macs-card">
+  <div class="section-head">
+    <h2>Allowed MAC addresses</h2>
+    <span class="subtle">Names are stored in this dashboard only.</span>
+  </div>
+  <div class="live-filter compact-live-filter">
+    <label>Search MAC address or owner
+      <input id="macLiveSearch" type="search" autocomplete="off" placeholder="Type to filter without refreshing">
+    </label>
+    <button type="button" class="secondary" id="macSearchReset">Reset</button>
+  </div>
+  <p class="subtle" id="macListSummary"></p>
+  <table id="macTable">
+    <thead>
+      <tr>
+        <th>MAC address</th>
+        <th>Name / Owner</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="mac-row" data-mac="{{ row.mac|lower }}" data-label="{{ row.label|lower }}">
+        <td><code>{{ row.mac }}</code></td>
+        <td>
+          <form method="post" action="{{ url_for('update_label', ssid_id=wlan.id) }}" class="label-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="mac" value="{{ row.mac }}">
+            <input name="label" value="{{ row.label }}" placeholder="Optional name / owner">
+            <button class="small" type="submit">Save name</button>
+          </form>
+        </td>
+        <td>
+          {% if wlan.mac_filter_enabled and wlan.mac_filter_policy == 'allow' %}
+          <form method="post" action="{{ url_for('remove_mac', ssid_id=wlan.id) }}" onsubmit="return confirm('Remove this MAC address from {{ wlan.name }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="mac" value="{{ row.mac }}">
+            <button class="small danger" type="submit">Remove MAC</button>
+          </form>
+          {% else %}
+          <span class="subtle">Blocked</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr class="no-macs-row"><td colspan="3">No MAC addresses found.</td></tr>
+      {% endfor %}
+      <tr id="macNoResultsRow" class="hidden"><td colspan="3">No MAC addresses matched.</td></tr>
+    </tbody>
+  </table>
+  <div class="pagination-bar" id="macPagination" aria-label="MAC list pagination"></div>
+</section>
+<script>
+(function () {
+  const tip = document.getElementById('hardwareMacTip');
+  const tipClose = tip ? tip.querySelector('.tip-close') : null;
+  if (tip && localStorage.getItem('hardwareMacTipClosed') === '1') {
+    tip.classList.add('hidden');
+  }
+  if (tipClose) {
+    tipClose.addEventListener('click', function () {
+      localStorage.setItem('hardwareMacTipClosed', '1');
+      tip.classList.add('hidden');
+    });
+  }
+
+  const pageSize = 20;
+  const search = document.getElementById('macLiveSearch');
+  const reset = document.getElementById('macSearchReset');
+  const rows = Array.from(document.querySelectorAll('#macTable tbody tr.mac-row'));
+  const noResults = document.getElementById('macNoResultsRow');
+  const pagination = document.getElementById('macPagination');
+  const summary = document.getElementById('macListSummary');
+  let currentPage = 1;
+
+  function rowText(row) {
+    const labelInput = row.querySelector('input[name="label"]');
+    const liveLabel = labelInput ? labelInput.value.toLowerCase() : '';
+    return `${row.dataset.mac || ''} ${row.dataset.label || ''} ${liveLabel}`;
+  }
+
+  function filteredRows() {
+    const term = (search.value || '').trim().toLowerCase();
+    if (!term) return rows;
+    return rows.filter(row => rowText(row).includes(term));
+  }
+
+  function render() {
+    const matches = filteredRows();
+    const totalPages = Math.max(1, Math.ceil(matches.length / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * pageSize;
+    const visible = new Set(matches.slice(start, start + pageSize));
+
+    rows.forEach(row => {
+      row.classList.toggle('hidden', !visible.has(row));
+    });
+
+    if (noResults) noResults.classList.toggle('hidden', matches.length !== 0 || rows.length === 0);
+
+    if (summary) {
+      if (rows.length === 0) {
+        summary.textContent = 'No MAC addresses are currently listed.';
+      } else if (matches.length === 0) {
+        summary.textContent = `Showing 0 of ${rows.length} MAC addresses.`;
+      } else {
+        const end = Math.min(start + pageSize, matches.length);
+        summary.textContent = `Showing ${start + 1}-${end} of ${matches.length} matched MAC addresses. Total: ${rows.length}.`;
+      }
+    }
+
+    renderPagination(totalPages, matches.length);
+  }
+
+  function makeButton(text, page, disabled, active) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `small ${active ? 'page-active' : 'secondary'}`;
+    btn.textContent = text;
+    btn.disabled = disabled;
+    btn.addEventListener('click', () => {
+      currentPage = page;
+      render();
+      document.getElementById('allowed-macs-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return btn;
+  }
+
+  function renderPagination(totalPages, matchCount) {
+    pagination.innerHTML = '';
+    if (rows.length <= pageSize && matchCount <= pageSize) return;
+
+    pagination.appendChild(makeButton('Previous', Math.max(1, currentPage - 1), currentPage === 1, false));
+
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 2) pages.push(i);
+    }
+    let last = 0;
+    pages.forEach(page => {
+      if (page - last > 1) {
+        const gap = document.createElement('span');
+        gap.className = 'pagination-gap';
+        gap.textContent = '...';
+        pagination.appendChild(gap);
+      }
+      pagination.appendChild(makeButton(String(page), page, false, page === currentPage));
+      last = page;
+    });
+
+    pagination.appendChild(makeButton('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages, false));
+  }
+
+  if (search) {
+    search.addEventListener('input', () => {
+      currentPage = 1;
+      render();
+    });
+  }
+  if (reset) {
+    reset.addEventListener('click', () => {
+      search.value = '';
+      currentPage = 1;
+      render();
+      search.focus();
+    });
+  }
+  rows.forEach(row => {
+    const input = row.querySelector('input[name="label"]');
+    if (input) {
+      input.addEventListener('input', () => {
+        row.dataset.label = input.value.toLowerCase();
+        render();
+      });
+    }
+  });
+  render();
+})();
+</script>
+{% endblock %}
