@@ -588,12 +588,4 @@ Local SQLite database.
 
 MIT License.
 
-MIT is a good fit for this project because it is simple, widely used, and lets other admins use, modify, and deploy the tool with minimal restrictions.
-
----
-
-## Credits
-
-Built by [maxdorx](https://github.com/maxdorx/)
-
 This project is not affiliated with, endorsed by, or sponsored by Ubiquiti Inc. UniFi is a trademark of Ubiquiti Inc.
