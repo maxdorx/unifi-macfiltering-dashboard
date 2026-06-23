@@ -8,7 +8,7 @@ Built by [maxdorx](https://github.com/maxdorx/)
 
 ## Quick start
 
-Install the system packages:
+Install system packages:
 
 ```bash
 sudo apt update
@@ -90,32 +90,36 @@ http://<server-ip>:4000
 
 ## What this project does
 
-UniFi MAC Filtering lets a helpdesk or support team add, remove, search, and bulk-import allowed device MAC addresses for UniFi WiFi networks.
+UniFi MAC Filtering gives support teams a simple web dashboard for managing UniFi WiFi MAC filtering.
 
-It is designed for environments where WiFi access is controlled by MAC filtering, but support users should not have full access to the UniFi Network dashboard.
+It lets users:
 
-Instead of giving support staff UniFi admin access, this app provides a limited web portal where they can manage only WiFi MAC filtering entries.
+* View WiFi networks.
+* Check whether MAC filtering is on or off.
+* View MAC addresses currently used for filtering.
+* Add MAC addresses.
+* Remove MAC addresses.
+* Bulk import MAC addresses.
+* Add names or owners to MAC addresses.
+* Track who made each change.
+
+The goal is simple: support users can manage WiFi MAC filtering without needing access to the full UniFi Network dashboard.
 
 ---
 
 ## Why this exists
 
-UniFi supports MAC filtering, but the built-in dashboard is not ideal for delegated support workflows.
+UniFi supports MAC filtering, but managing it from the UniFi dashboard becomes painful when the list grows.
 
-UniFi’s built-in MAC filtering interface works, but it becomes painful when the list grows. Adding MAC addresses through the UniFi dashboard usually means opening the WiFi settings drawer, scrolling through the MAC filtering section, adding entries one by one, and saving the full WiFi network configuration. For a large helpdesk workflow, that is slow, hard to audit, and easy to mess up.
+Adding MAC addresses in UniFi usually means opening WiFi settings, finding the MAC filtering section, adding entries manually, and saving the full WiFi network configuration. For support teams, that is slow, hard to audit, and easy to mess up.
 
-This project provides a simpler workflow: support users log in, choose a WiFi network, add or remove MAC addresses, and the app updates the UniFi MAC allow list through the local UniFi API.
+This dashboard gives support users a safer workflow:
 
-Common problems this project solves:
+```text
+Log in → choose WiFi network → add or remove MAC address → done
+```
 
-* Support users need to add laptop MAC addresses without full UniFi dashboard access.
-* UniFi MAC lists do not support owner names or device labels.
-* Bulk MAC address import is awkward.
-* Auditing who added or removed a MAC is difficult.
-* Backups and restore points for MAC allow lists are useful before changes.
-* Large MAC lists become hard to search and manage.
-
-This dashboard adds the missing operational layer on top of UniFi’s MAC filtering feature.
+The app handles the UniFi API update in the background.
 
 ---
 
@@ -126,25 +130,24 @@ This dashboard adds the missing operational layer on top of UniFi’s MAC filter
 * Shows UniFi WiFi networks.
 * Shows whether each WiFi network is enabled.
 * Shows security type in readable format.
-* Shows whether the MAC allow list is on or off.
-* Shows MAC allow policy.
-* Shows the number of allowed MAC addresses.
-* Provides live filtering and search.
+* Shows whether MAC filtering is on or off.
+* Shows MAC filtering policy.
+* Shows the number of MAC addresses in the filtering list.
+* Provides live search.
 
-### MAC address management
+### MAC filtering management
 
 * Add one MAC address.
 * Add an optional name or owner.
 * Remove MAC addresses.
 * Edit saved names or owners.
 * Search MAC addresses live while typing.
-* Show MAC addresses with pagination.
-* Display 20 MAC addresses per page.
+* Show 20 MAC addresses per page.
 * Normalize common MAC formats.
 * Prevent duplicate MAC entries.
 * Validate MAC address format before saving.
 
-Supported MAC formats include:
+Supported MAC formats:
 
 ```text
 aa:bb:cc:dd:ee:ff
@@ -156,7 +159,7 @@ aabbccddeeff
 
 * Paste many MAC addresses at once.
 * Upload CSV or TXT files.
-* Preview bulk changes before applying.
+* Preview changes before applying.
 * Skip duplicates automatically.
 * Save optional names or owners during import.
 * Show invalid rows before applying.
@@ -180,9 +183,9 @@ a8:64:f1:f4:90:89,Test device
 
 ### Local names and owners
 
-UniFi stores only the MAC address list.
+UniFi stores MAC addresses, but not friendly names for entries in the MAC filtering list.
 
-This dashboard stores names and owners locally in SQLite so support users can see who or what each MAC address belongs to.
+This dashboard stores names and owners locally in SQLite.
 
 Example:
 
@@ -220,7 +223,7 @@ Admins can:
 Support users can:
 
 * View WiFi networks.
-* View allowed MAC addresses.
+* View MAC filtering entries.
 * Add MAC addresses.
 * Remove MAC addresses.
 * Bulk import MAC addresses.
@@ -236,7 +239,9 @@ Support users cannot access:
 
 ### Audit log
 
-The audit log records important actions, including:
+The audit log records important actions.
+
+Tracked actions include:
 
 * MAC address added.
 * MAC address removed.
@@ -261,11 +266,9 @@ Audit entries include:
 * Change details.
 * Status.
 
-Timestamps are displayed in the configured dashboard timezone.
-
 ### Backup and restore
 
-The app creates a backup before changing a MAC list.
+The app creates a backup before changing a MAC filtering list.
 
 Admins can also create manual backups.
 
@@ -278,7 +281,7 @@ Backups can be:
 Restore behavior:
 
 ```text
-Restoring a backup replaces the current MAC list with the MAC list saved in that backup.
+Restoring a backup replaces the current MAC filtering list with the MAC filtering list saved in that backup.
 Use this only if you need to undo a bad change.
 ```
 
@@ -286,7 +289,7 @@ Use this only if you need to undo a bad change.
 
 The dashboard includes a dark mode toggle.
 
-Theme preference is saved in the browser.
+The selected theme is saved in the browser.
 
 ### Hardware MAC tip
 
@@ -302,7 +305,7 @@ This matters because many modern devices use randomized or private MAC addresses
 
 ## How it works
 
-This app talks to the UniFi Network Application using the local legacy API.
+The app talks to the UniFi Network Application using the local legacy API.
 
 It logs into UniFi using a dedicated local UniFi admin or service account, then reads and updates WiFi network configuration.
 
@@ -325,7 +328,7 @@ mac_filter_list
 
 Everything else in the UniFi WiFi configuration is preserved.
 
-The app does not give dashboard users direct access to UniFi credentials. UniFi credentials stay server-side in the `.env` file.
+Dashboard users do not get direct access to UniFi credentials. UniFi credentials stay server-side in the `.env` file.
 
 ---
 
@@ -336,14 +339,12 @@ Tested with:
 ```text
 UniFi Network Application 10.4.57
 Self-hosted UniFi Network Application
-Legacy local API login
-Default site path: /api/s/default/rest/wlanconf
 ```
 
 Expected to work with:
 
 ```text
-Self-hosted UniFi Network Application installs that support /api/login and /api/s/<site>/rest/wlanconf
+Self-hosted UniFi Network Application installs
 ```
 
 Not currently designed for:
@@ -361,10 +362,9 @@ Use a local UniFi service account without MFA.
 Recommended UniFi account:
 
 ```text
-Username: unifi-mac-filter
 Type: Local UniFi admin/service account
 MFA: Disabled
-Access: Enough permission to edit WiFi settings
+Access: Permission to edit WiFi settings
 ```
 
 ---
@@ -382,13 +382,17 @@ systemd
 Network access to the UniFi Network Application
 ```
 
-Python packages are installed automatically from `requirements.txt`.
+Python packages are installed from `requirements.txt`.
 
 ---
 
 ## Configuration reference
 
-The app uses `/opt/mac-filtering/.env`.
+The app uses:
+
+```text
+/opt/mac-filtering/.env
+```
 
 Example:
 
@@ -461,12 +465,6 @@ audit logs
 MAC names
 backups
 UniFi credentials
-```
-
-After upgrading, hard refresh the browser:
-
-```text
-Ctrl + F5
 ```
 
 ---
@@ -554,8 +552,8 @@ Handles:
 
 * Login to UniFi.
 * Reading WiFi network configuration.
-* Updating MAC allow lists.
-* Restoring saved MAC list backups.
+* Updating MAC filtering lists.
+* Restoring saved MAC filtering backups.
 * Redacting sensitive UniFi fields before writing backups.
 
 ### `run.py`
@@ -583,175 +581,6 @@ Tests UniFi login and WiFi network read access.
 ### `instance/mac_filtering.sqlite`
 
 Local SQLite database.
-
-Stores:
-
-* Dashboard users.
-* User roles.
-* Local MAC names.
-* Audit log.
-* Backup metadata.
-
-### `instance/backups/`
-
-Stores JSON backups created before MAC list changes.
-
----
-
-## Security notes
-
-Do not expose this dashboard directly to the internet.
-
-Recommended deployment:
-
-```text
-LAN only
-VPN only
-Reverse proxy with HTTPS
-Firewall-restricted access
-Dedicated local UniFi service account
-Strong dashboard passwords
-```
-
-Do not commit these files:
-
-```text
-.env
-instance/
-*.sqlite
-backups/
-logs
-real MAC address exports
-```
-
-The included `.gitignore` excludes these files.
-
----
-
-## Data storage
-
-UniFi stores:
-
-```text
-MAC allow list
-MAC filtering enabled/disabled state
-MAC filtering policy
-```
-
-This app stores locally:
-
-```text
-Dashboard users
-User roles
-Local MAC names/owners
-Audit log
-Backup metadata
-Backup files
-```
-
-Names and owners are not stored in UniFi.
-
----
-
-## Limitations
-
-* This project uses UniFi’s legacy local API endpoints.
-* It requires a local UniFi account that can log in without MFA.
-* It does not use the newer official UniFi API key system.
-* It only manages WiFi MAC allow lists.
-* It does not manage RADIUS MAC authentication.
-* It does not manage VLAN assignment.
-* It does not manage client blocking.
-* It does not change WiFi passwords or security settings.
-* Restore replaces the MAC list with the saved backup version.
-* Large MAC lists may be better managed with RADIUS in enterprise environments.
-
----
-
-## Troubleshooting
-
-### UniFi login fails with `api.err.Invalid`
-
-Check:
-
-```text
-UNIFI_USERNAME
-UNIFI_PASSWORD
-UNIFI_BASE_URL
-UNIFI_SITE
-```
-
-Also check whether the password contains special characters. Wrap it in single quotes in `.env`.
-
-Example:
-
-```bash
-UNIFI_PASSWORD='password,with#symbols'
-```
-
-### UniFi login fails with `api.err.Ubic2faTokenRequired`
-
-The UniFi account has MFA enabled.
-
-Use a local UniFi service account without MFA.
-
-### Service fails with `Address already in use`
-
-Another process is already using port `4000`.
-
-Check:
-
-```bash
-sudo ss -ltnp | grep ':4000'
-```
-
-Restart the service:
-
-```bash
-sudo systemctl restart mac-filtering
-```
-
-### Dashboard changes do not show after upgrade
-
-Hard refresh the browser:
-
-```text
-Ctrl + F5
-```
-
-### Check logs
-
-```bash
-sudo journalctl -u mac-filtering -n 100 --no-pager
-```
-
----
-
-## Open-source publishing checklist
-
-Before publishing a fork or copy, remove:
-
-```text
-.env
-instance/
-SQLite database files
-backup files
-audit exports
-real MAC addresses
-real user names
-server IP addresses
-UniFi usernames
-password hashes
-company branding
-```
-
-Search for secrets before pushing:
-
-```bash
-grep -RniE 'password|secret|token|key|10\.|x_passphrase|unifi-cookie|pbkdf2' .
-```
-
-Expected matches may include source code that intentionally mentions password hashing or UniFi redaction. Do not commit real credentials or real runtime data.
 
 ---
 
